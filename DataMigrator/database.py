@@ -13,6 +13,22 @@ from openpyxl.cell.read_only import ReadOnlyCell
 
 
 class Column:
+    """ Column is a class that can load, store and operate data structure similar to column in
+        mySQL (but without joints).
+
+        # Attributes
+        - title
+        - comment (optional)
+        - data (optional if it is a Iteration column such as index column)
+        
+        # Methods
+        - count
+        - add_data
+        - get_data
+        - swap_row
+        - add_table
+    """
+
     def __init__(self,
                  title: str,
                  comment: str | None = None,
@@ -30,9 +46,9 @@ class Column:
                 self.data = data.data.copy()
             
             if isinstance(mapping, dict):
-                self.mapping_dict(mapping)
+                self._mapping_dict(mapping)
             elif isinstance(mapping, Callable):
-                self.mapping_func(mapping)
+                self._mapping_func(mapping)
             
         else:
             self.data = []
@@ -71,10 +87,10 @@ class Column:
 
         self.data[i0], self.data[i1] = self.data[i1], self.data[i0]
         
-    def mapping_func(self, func: Callable) -> None:
+    def _mapping_func(self, func: Callable) -> None:
         self.data = list(map(lambda s: None if s is None else func(s), self.data))
     
-    def mapping_dict(self, mapping: dict) -> None:
+    def _mapping_dict(self, mapping: dict) -> None:
         for v in mapping.values():
             if v != "_Origin":
                 break
@@ -155,7 +171,25 @@ class IndexColumn(Column):
 
 
 class Table:
+    """ Table is a class that can load, store and operate data structure similar to table in
+        mySQL (but without joints).
+
+        # Attributes
+        - name
+        - columns: A list contains all columns in the Database.
+        
+        # Methods
+        - import_from_xlsx (staticmethod)
+        - export_to_xlsx
+        - has_table
+        - get_table
+        - add_table
+    """
+
     def __init__(self, name: str, columns: list[Column] | None = None):
+        """ Initialize a new table with its name. The columns argment is optional which allows
+            you to initialize its data from a list of Column objects.
+        """
         self.name: str = name
         self.columns: list[Column]
         self._column_index: dict[str, int]
@@ -186,6 +220,9 @@ class Table:
             raise ValueError("Title already exists.")
     
     def _check_empty_ends(self) -> bool:
+        """ Check if there is any empty rows at the bottom of the Table, called by the method
+            _clear_empty and not necessarily to call it manually.
+        """
         c: Column
         for c in self.columns:
             if len(c.data) < self._max_row_num:
@@ -195,6 +232,9 @@ class Table:
         return True
     
     def _pop_back(self) -> None:
+        """ Clear and delete the last row of the Table, do not affect the columns that has
+            less rows.
+        """
         c: Column
         self._max_row_num -= 1
         for c in self.columns:
@@ -202,6 +242,10 @@ class Table:
                 del c.data[self._max_row_num:]
     
     def _clear_empty_ends(self) -> None:
+        """ Clear empty rows at the end of the table, which is useful when imported from a
+            worksheet with junks or empty cell at the bottom. Automatically called by the
+            method create_from_worksheet and not necessarily to call it manually.
+        """
         while self._check_empty_ends():
             self._pop_back()
 
@@ -226,6 +270,7 @@ class Table:
             self.append_column(title, comment)
     
     def suspended_column(self) -> int:
+        """ Append a placeholder column at the end of the table and return the index of it """
         self.columns.append(PlaceHolderColumn())
         return len(self.columns) - 1
     
@@ -254,6 +299,9 @@ class Table:
         return self._column_index[column_title]
     
     def get_range(self, reverse=False) -> range:
+        """ Returns an iterator that traversals the indexs of the table, can be from backwords
+            if argment reverse == True.
+        """
         if reverse:
             return range(self._max_row_num-1, -1, -1)
         return range(self._max_row_num)
@@ -265,6 +313,7 @@ class Table:
         return self.columns[self._column_index[column_title]]
     
     def swap_row(self, i0: int, i1: int) -> None:
+        """ Swap two rows of given index i0 and i1, affecting all columns in the table. """
         if i0 == i1:
             return
         if i0 > i1:
@@ -277,6 +326,7 @@ class Table:
             c.swap_row(i0, i1)
     
     def move_to_end(self, index: int) -> None:
+        """ Move the row to the end of the table, affecting all columns in the table. """
         if self._max_row_num <= index:
             raise IndexError(f"row {index} do not exists")
         if self._max_row_num - 1 == index:
@@ -287,6 +337,7 @@ class Table:
     
     @staticmethod
     def create_from_worksheet(ws: ReadOnlyWorksheet) -> Table:
+        """ Create and return a Table object using the data from a worksheet object. """
         t: Table = Table(ws.title)
         
         r: tuple[ReadOnlyCell]
@@ -310,7 +361,23 @@ class Table:
 
 
 class Database:
+    """ Database is a class that can load, store and operate data structure similar to mySQL
+        (but without joints). Data can be imported from and exported to .xslx files (based on
+        the openpyxl module).
+
+        # Attributes
+        - tables: A list contains all tables in the Database.
+        
+        # Methods
+        - import_from_xlsx (staticmethod)
+        - export_to_xlsx
+        - has_table
+        - get_table
+        - add_table
+    """
+
     def __init__(self):
+        """ Initialize a Database with nothing in it. """
         self.tables: list[Table] = []
         self._table_index: dict[str, int] = {}
 
@@ -346,6 +413,7 @@ class Database:
         wb.save(savePath)
     
     def has_table(self, name: str) -> bool:
+        """ Return true if the Database has a table of the name. """
         return name in self._table_index
     
     def get_table(self, name: str) -> Table:
@@ -355,6 +423,7 @@ class Database:
         return self.tables[self._table_index[name]]
 
     def add_table(self, name: str) -> Table:
+        """ Add an empty table with nothing in it. """
         new_table: Table = Table(name)
         self.tables.append(new_table)
         self._table_index[name] = len(self.tables) - 1
