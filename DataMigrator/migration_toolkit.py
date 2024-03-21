@@ -101,16 +101,16 @@ def process_cconf(src_db: Database,
         available.
     """
     add_column: function
-    if pos is None:
-        add_column = lambda column_type, **kwargs: t.append_column(
+    if pos:
+        add_column = lambda column_type, **kwargs: t.insert_column(
+            pos,
             col_conf["title"],
             col_conf.get("comment"),
             column_type,
             **kwargs
         )
     else:
-        add_column = lambda column_type, **kwargs: t.insert_column(
-            pos,
+        add_column = lambda column_type, **kwargs: t.append_column(
             col_conf["title"],
             col_conf.get("comment"),
             column_type,
@@ -161,7 +161,7 @@ def process_cconf(src_db: Database,
         try:
             dpd: list[list] = [dereference_column(src_db, ex_src_db, tgt_db, *ref).data
                                for ref in col_conf["dependence"]]
-        except KeyError:
+        except KeyError as e:
             return False
         
         l: int = len(dpd[0])
@@ -209,19 +209,22 @@ def execute_migration(config: PathLike | dict,
     for sconf in config["sheets"]:
         new_table: Table = tgt_db.add_table(sconf["name"])
         
-        sus_list = SuspendedList(lambda conf, index: process_cconf(src_db, ex_src_db, tgt_db,
-                                                                   new_table, conf, args, index))
+        sus_list = SuspendedList(lambda conf, ind: process_cconf(src_db, ex_src_db, tgt_db,
+                                                                 new_table, conf, args, ind))
         cconf: dict
         for cconf in sconf["columns"]:
-            
-            sus_list.check(cconf["title"])
 
             process_succeed: bool = process_cconf(src_db, ex_src_db, tgt_db,
                                                   new_table, cconf, args)
 
             if not process_succeed:
-                # print(f"Suspended - {new_table.name} {cconf["title"]} {suspend_info[1]}")
-                sus_list.append(cconf, cconf["dependence"], new_table.suspended_column())
+                sus_list.append(cconf,
+                                sconf["name"],
+                                cconf["dependence"],
+                                new_table.suspended_column())
+                # print(f"Suspended - {new_table.name} {cconf["title"]}")
+            else:
+                sus_list.check((sconf["name"], cconf["title"]))
         
         if sus_list.something_here():
             sus_list.raise_exception(new_table.name)

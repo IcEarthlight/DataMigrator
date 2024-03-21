@@ -278,7 +278,7 @@ class Table:
         """ Insert a new column in the specified place in a table. Empty Columns would be
             filled in the space.
         """
-        if index <= len(self.columns):
+        if index >= len(self.columns):
             self.columns.extend([PlaceHolderColumn()] * (index - len(self.columns) + 1))
         
         new_column: Column = column_type(title, comment, **kwargs)
