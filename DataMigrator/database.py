@@ -54,16 +54,10 @@ class Column:
             self.data = []
 
     def __str__(self) -> str:
-        if self.comment:
-            return f"<Column \"{self.title}\" comment = \"{self.comment}\" len(data) = {len(self.data)}>"
-        else:
-            return f"<Column \"{self.title}\" len(data) = {len(self.data)}>"
+        return f"<Column \"{self.title}\" len(data) = {len(self.data)}>"
     
     def __repr__(self) -> str:
-        if self.comment:
-            return f"<Column \"{self.title}\" comment = \"{self.comment}\" len(data) = {len(self.data)}>"
-        else:
-            return f"<Column \"{self.title}\" len(data) = {len(self.data)}>"
+        return f"<Column \"{self.title}\" len(data) = {len(self.data)}>"
         
     def count(self) -> int:
         return len(self.data)
@@ -251,7 +245,7 @@ class Table:
 
     def append_column(self,
                       title: str,
-                      comment: str,
+                      comment: str | None,
                       column_type: type = Column,
                       **kwargs
         ) -> None:

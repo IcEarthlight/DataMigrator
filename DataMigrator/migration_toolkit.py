@@ -159,16 +159,19 @@ def process_cconf(src_db: Database,
         )
     elif "dependence" in col_conf:
         try:
-            dpd: list[list] = [dereference_column(src_db, ex_src_db, tgt_db, *ref).data for ref in col_conf["dependence"]]
+            dpd: list[list] = [dereference_column(src_db, ex_src_db, tgt_db, *ref).data
+                               for ref in col_conf["dependence"]]
         except KeyError:
             return False
         
         l: int = len(dpd[0])
         tgt: list = [None] * l
-        exec(pyjson.parse(col_conf["script"]))
+        context: dict[str: ...] = {'l': l, "tgt": tgt, "dpd": dpd, "args": args}
+
+        exec(pyjson.parse(col_conf["script"]), context)
         add_column(
             Column,
-            data = tgt
+            data = context["tgt"]
         )
         
     else:
@@ -206,13 +209,15 @@ def execute_migration(config: PathLike | dict,
     for sconf in config["sheets"]:
         new_table: Table = tgt_db.add_table(sconf["name"])
         
-        sus_list = SuspendedList(lambda conf, index: process_cconf(src_db, ex_src_db, tgt_db, new_table, conf, args, index))
+        sus_list = SuspendedList(lambda conf, index: process_cconf(src_db, ex_src_db, tgt_db,
+                                                                   new_table, conf, args, index))
         cconf: dict
         for cconf in sconf["columns"]:
             
             sus_list.check(cconf["title"])
 
-            process_succeed: bool = process_cconf(src_db, ex_src_db, tgt_db, new_table, cconf, args)
+            process_succeed: bool = process_cconf(src_db, ex_src_db, tgt_db,
+                                                  new_table, cconf, args)
 
             if not process_succeed:
                 # print(f"Suspended - {new_table.name} {cconf["title"]} {suspend_info[1]}")
