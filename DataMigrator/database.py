@@ -35,6 +35,15 @@ class Column:
                  data: list | Column | None = None,
                  mapping: dict | Callable = {"_Other": "_Origin"}
         ):
+        """ Initialize a new Column with its title and other information.
+
+            # Args
+            - title
+            - comment (optional)
+            - data (optional): use given data to initialize the Column
+            - mapping (optional): use a function of a mapping dict to adjust the initial data
+            from the argment data. See About_rjson.md about how a mapping dict works.
+        """
         self.title: str = title
         self.comment: str = comment if comment else ''
         self.data: list[object]
@@ -60,9 +69,11 @@ class Column:
         return f"<Column \"{self.title}\" len(data) = {len(self.data)}>"
         
     def count(self) -> int:
+        """ Get the length of data in this Column (number of rows). """
         return len(self.data)
     
     def add_data(self, newData) -> None:
+        """ Add new data (row) at the bottom of the Column. """
         self.data.append(newData)
 
     def get_data(self, index: int) -> object | None:
@@ -72,6 +83,7 @@ class Column:
             return None
     
     def swap_row(self, i0: int, i1: int) -> None:
+        """ Swap two rows by given the two indexes. """
         if i0 == i1:
             return
         if i0 > i1:
@@ -82,9 +94,15 @@ class Column:
         self.data[i0], self.data[i1] = self.data[i1], self.data[i0]
         
     def _mapping_func(self, func: Callable) -> None:
+        """ Adjust all data in the column by passing them individually through the given
+            function.
+        """
         self.data = list(map(lambda s: None if s is None else func(s), self.data))
     
     def _mapping_dict(self, mapping: dict) -> None:
+        """ Adjust all data in the column by a mapping dict. See About_rjson.md about how a
+            mapping dict works.
+        """
         for v in mapping.values():
             if v != "_Origin":
                 break
@@ -102,6 +120,7 @@ class Column:
 
 
 class PlaceHolderColumn(Column):
+    """ A placeholder Column for columns that suspend their process. """
     def __init__(self):
         Column.__init__(self, '')
     
@@ -110,6 +129,7 @@ class PlaceHolderColumn(Column):
         pass
 
 class EmptyColumn(Column):
+    """ A empty Column with noting in it. """
     def __init__(self, title: str, comment: str | None = None):
         Column.__init__(self, title, comment)
     
@@ -126,6 +146,7 @@ class EmptyColumn(Column):
         pass
 
 class FilledColumn(Column):
+    """ A filled Column with a constant value in all cells (rows) of it. """
     def __init__(self, title: str, comment: str | None = None, filler = None):
         Column.__init__(self, title, comment)
         self.filler = filler
@@ -143,6 +164,7 @@ class FilledColumn(Column):
         pass
     
 class IndexColumn(Column):
+    """ A index Column marks the index of each row. """
     def __init__(self, title: str, comment: str | None = None, start_from: int = 1):
         Column.__init__(self, title, comment)
         self.start_from: int = start_from

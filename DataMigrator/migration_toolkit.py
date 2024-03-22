@@ -226,8 +226,8 @@ def execute_migration(config: PathLike | dict,
             else:
                 sus_list.check((sconf["name"], cconf["title"]))
         
-        if sus_list.something_here():
-            sus_list.raise_exception(new_table.name)
+    if sus_list.something_here():
+        sus_list.raise_exception(new_table.name)
             
 
     if "process" in config and "post" in config["process"]:

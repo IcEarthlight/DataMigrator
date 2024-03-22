@@ -6,8 +6,21 @@ from typing import NoReturn
 from DataMigrator.database import Table, Database
 
 ColInfo = tuple[str, str]
+# (Sheetname, Columntitle)
 
 class _SuspendInfo:
+    """ A class that stores the information of one single suspended column.
+
+        # Attributes
+        - conf: the config data in a dict
+        - wait_for: what is the column waiting for
+        - index: where should the column be in the table
+        - released: if this column is released from the waitlist
+        - released_func: called when released
+
+        # Methods
+        - release
+    """
     def __init__(self,
                  conf: dict,
                  this_sheet_name: str,
@@ -35,6 +48,31 @@ class _SuspendInfo:
 
 
 class SuspendedList:
+    """ A Class that can temporarily store config information of columns that requires data
+        not been read and cannot be processed yet. Every time when a new column finishes
+        processing, the check() method would be called to check if this is a column that is
+        needed by a column on the waitlist. Once all required columns are available for a
+        column on the waitlist, this columns would be released from the waitlist and been
+        properly processed.
+
+        # Attributes
+        - waitlist: A dict with the structure of {(Sheetname, Columntitle): [info1, info2,
+        ...]} In each key-value pair, the value is a bunch of column infos that is waiting
+        for the key, which is a tuple reqresents an unloaded column.
+        - release_function: The function that would be called when a column info is released
+        from the waitlist.
+
+        # Methods
+        - append: add a new column to the waitlist
+        - check: check if any column can be released now and remove from the waitlist
+        - something_here: check if there is anything left in the waitlist
+        - raise_exception
+
+        # Raises
+        When the all other columns are completed, but some columns are still waiting for
+        a columns that is not exsists, an exception would be raised through calling the method
+        raise_exception()
+    """
     def __init__(self, rel_f: function) -> None:
         self.waitlist: dict[ColInfo, list[_SuspendInfo]] = {}
         self.release_function: function = rel_f
@@ -43,11 +81,14 @@ class SuspendedList:
                conf: dict,
                this_sheet_name: str,
                wait_for: list[list[str]], index: int) -> None:
+        """ Add a new column to the waitlist, providing the config data, the sheet name of the
+            column, and most importantly, what is the column waiting for.
+        """
         new_info: _SuspendInfo = _SuspendInfo(conf,
                                               this_sheet_name,
                                               wait_for, index,
                                               self.release_function)
-
+        
         wf: list[str]
         for wf in new_info.wait_for:
             if tuple(wf) in self.waitlist:
@@ -56,11 +97,10 @@ class SuspendedList:
             else:
                 self.waitlist[tuple(wf)] = [new_info]
     
-    def something_here(self) -> bool:
-        return bool(self.waitlist)
-    
     def check(self, new_col_info: ColInfo) -> None:
-
+        """ Given the information of a new added column (Sheetname, Columntitle), check if any
+            column can be released now and remove from the waitlist.
+        """
         if new_col_info in self.waitlist:
             for sus_info in self.waitlist[new_col_info]:
                 sus_info.wait_for.remove(new_col_info)
@@ -69,7 +109,12 @@ class SuspendedList:
                     sus_info.release()
             del self.waitlist[new_col_info]
     
+    def something_here(self) -> bool:
+        """ Check if there is anything left in the waitlist. """
+        return bool(self.waitlist)
+    
     def raise_exception(self, table_name: str) -> NoReturn:
+        """ As its name shows. """
         sus_confs: list[_SuspendInfo]
         for _, sus_confs in self.waitlist.items():
             for sc in sus_confs:
