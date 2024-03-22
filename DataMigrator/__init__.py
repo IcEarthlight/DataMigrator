@@ -25,7 +25,7 @@ Example: (Script)
 ``` python
 from os import PathLike
 from DataMigrator.database import Database
-from DataMigrator import migration_toolkit
+from DataMigrator import migration_toolkit as mt
 
 read_path: PathLike = "./src_data.xlsx"
 save_path: PathLike = "./output.xlsx"

@@ -118,14 +118,14 @@ class FileEntryLine:
         if on_load:
             self.button = ttk.Button(
                 frame,
-                text = "浏览",
+                text = "Browse",
                 command = (lambda: on_load(choose_save(self.entry, filetypes))) if save else
                           (lambda: on_load(choose_file(self.entry, filetypes)))
             )
         else:
             self.button = ttk.Button(
                 frame,
-                text = "浏览",
+                text = "Browse",
                 command = (lambda: choose_save(self.entry, filetypes)) if save else
                           (lambda: choose_file(self.entry, filetypes))
             )
@@ -204,20 +204,20 @@ class FileEntryFrame(ttk.Frame):
         self.master: MigratorUI = master
         
         self.config_loader = FileEntryLine(
-            self, master, 0, "请选择配置文件：",
+            self, master, 0, "Config File Path:",
             filetypes = [("Data Migration Config File", "rjson")],
             enabled = True,
             on_load = self.on_load_config
         )
         self.source_loaders: list[FileEntryLine] = [
             FileEntryLine(
-                self, master, 1, "请选择源数据文件：",
+                self, master, 1, "Source File Path:",
                 filetypes = [("Microsoft Excel", (".xls", ".xlsx"))],
                 enabled = False
             )
         ]
         self.outdir_selector = FileEntryLine(
-            self, master, 2, "请选择输出路径：",
+            self, master, 2, "Export to:",
             filetypes = [("Microsoft Excel", (".xls", ".xlsx"))],
             save = True, enabled = False
         )
@@ -251,7 +251,7 @@ class FileEntryFrame(ttk.Frame):
             row_index = len(self.source_loaders) + 1
             self.source_loaders.append(
                 FileEntryLine(
-                    self, self.master, row_index, f"请选择源数据文件{row_index}：",
+                    self, self.master, row_index, f"Source File Path{row_index}:",
                     filetypes = [("Microsoft Excel", (".xls", ".xlsx"))],
                     enabled = True
                 )
@@ -631,10 +631,10 @@ class MigratorUI(tk.Tk):
         self.frame_bottom = ttk.Frame(self)
         self.frame_bottom.pack(fill=tk.X, padx=20*self.sf, pady=10*self.sf)
 
-        self.button_cancel = ttk.Button(self.frame_bottom, text="取消", command=self.destroy)
+        self.button_cancel = ttk.Button(self.frame_bottom, text="Cancel", command=self.destroy)
         self.button_cancel.pack(side=tk.LEFT)
 
-        self.button_run = ttk.Button(self.frame_bottom, text="运行", command=self.launch)
+        self.button_run = ttk.Button(self.frame_bottom, text="Run", command=self.launch)
         self.button_run.pack(side=tk.RIGHT)
         self.button_run.config(state=tk.DISABLED)
 
@@ -659,10 +659,11 @@ class MigratorUI(tk.Tk):
             tgt_db.export_to_xlsx(self.file_entry_frame.get_tgt_dir())
 
             messagebox.showinfo("Migrate Complete",
-                                f"迁移完成，已输出到路径 {self.file_entry_frame.get_tgt_dir()}")
+                                "Migration Colpleted, export to path " +
+                                    self.file_entry_frame.get_tgt_dir())
 
         except FileNotFoundError:
-            messagebox.showwarning("SourceDirError", "文件路径未指定")
+            messagebox.showwarning("SourceDirError", "Path not specified.")
 
         self.file_entry_frame.set_enabled(True)
         self.args_entry_frame.set_enabled(True)

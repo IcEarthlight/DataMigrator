@@ -1,0 +1,89 @@
+{
+    additional_input: 0,
+    args: [
+        {
+            description: The current status of data,
+            type: choice,
+            options: [Valid, Outdated, Incomplete, Unknown]
+        },
+        {
+            description: The latest checkdate,
+            type: text
+        }
+    ],
+    sheets: [
+        {
+            name: Iris Data,
+            columns: [
+                {
+                    title: Serial Number,
+                    index_start: 1
+                },
+                {
+                    title: Genus,
+                    fill_with: Iris
+                },
+                {
+                    title: Species,
+                    copy_from: [Iris, Species]
+                },
+                {
+                    title: Species Abbreviation,
+                    copy_from: [Iris, Species],
+                    mapping: {setosa: sts., versicolor: vsc., virginica: vgc., _Other: _Origin}
+                },
+                {
+                    title: First Three Letters of Species,
+                    copy_from: [Iris, Species],
+                    mapping: "lambda s: s[:3]"
+                },
+                {
+                    title: Height,
+                    comment: The height of each plant
+                },
+                {
+                    title: Maximum of Three Columns,
+                    comment: Meaningless data and just for demostration,
+                    dependence: [
+                        [Iris, Sepal Length],
+                        [Iris, Sepal Width],
+                        [Iris, Petal Length]
+                    ],
+                    script: {
+                        for i in range(l):
+                            "tgt[i] = max(dpd[0][i], dpd[1][i], dpd[2][i])"
+                    }
+                },
+                {
+                    title: Data Status,
+                    fill_with: _arg0
+                },
+                {
+                    title: Checkdate,
+                    fill_with: _arg1
+                }
+            ]
+        },
+        {
+            name: Mean Value,
+            columns: [
+                {
+                    title: Species,
+                    copy_from: [Mean, Species]
+                },
+                {
+                    title: Count,
+                    copy_from: [Mean, Count]
+                },
+                {
+                    title: This Copy Test,
+                    copy_from: [_This.Mean Value, sw]
+                },
+                {
+                    title: sw,
+                    copy_from: [Mean, Sepal Width Mean]
+                }
+            ]
+        }
+    ]
+}

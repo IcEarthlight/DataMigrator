@@ -5,7 +5,7 @@ from tkinter import Frame
 
 from DataMigrator.database import Column, EmptyColumn, FilledColumn, IndexColumn, Table, Database
 from DataMigrator.suspended_list import SuspendedList
-from DataMigrator import pyjson
+from DataMigrator import pjshon
 from DataMigrator import mapping_functions
 
 def substitute_args(s: str, args: list):
@@ -118,8 +118,10 @@ def process_cconf(src_db: Database,
         )
 
     if "copy_from" in col_conf:
-
-        src_col: Column = dereference_column(src_db, ex_src_db, tgt_db, *col_conf["copy_from"])
+        try:
+            src_col: Column = dereference_column(src_db, ex_src_db, tgt_db, *col_conf["copy_from"])
+        except KeyError as e:
+            return False
         
         if "mapping" in col_conf:
             if isinstance(col_conf["mapping"], dict):
@@ -168,7 +170,7 @@ def process_cconf(src_db: Database,
         tgt: list = [None] * l
         context: dict[str: ...] = {'l': l, "tgt": tgt, "dpd": dpd, "args": args}
 
-        exec(pyjson.parse(col_conf["script"]), context)
+        exec(pjshon.parse(col_conf["script"]), context)
         add_column(
             Column,
             data = context["tgt"]
@@ -203,7 +205,7 @@ def execute_migration(config: PathLike | dict,
         config: dict = parse_migration_config(config, "UTF-8")
 
     if "process" in config and "pre" in config["process"]:
-        exec(pyjson.parse(config["process"]["pre"]))
+        exec(pjshon.parse(config["process"]["pre"]))
 
     sconf: dict
     for sconf in config["sheets"]:
@@ -218,10 +220,16 @@ def execute_migration(config: PathLike | dict,
                                                   new_table, cconf, args)
 
             if not process_succeed:
-                sus_list.append(cconf,
-                                sconf["name"],
-                                cconf["dependence"],
-                                new_table.suspended_column())
+                if "copy_from" in cconf:
+                    sus_list.append(cconf,
+                                    sconf["name"],
+                                    [cconf["copy_from"]],
+                                    new_table.suspended_column())
+                else:
+                    sus_list.append(cconf,
+                                    sconf["name"],
+                                    cconf["dependence"],
+                                    new_table.suspended_column())
                 # print(f"Suspended - {new_table.name} {cconf["title"]}")
             else:
                 sus_list.check((sconf["name"], cconf["title"]))
@@ -231,6 +239,6 @@ def execute_migration(config: PathLike | dict,
             
 
     if "process" in config and "post" in config["process"]:
-        exec(pyjson.parse(config["process"]["post"]))
+        exec(pjshon.parse(config["process"]["post"]))
     
     return tgt_db

@@ -413,7 +413,7 @@ class Database:
         
         return db
 
-    def export_to_xlsx(self, savePath: PathLike, add_note: bool = False) -> None:
+    def export_to_xlsx(self, savePath: PathLike, add_comment: bool = False) -> None:
         """ Export the Database object to a .xlsx file. """
         wb: Workbook = Workbook(write_only=True)
 
@@ -421,7 +421,7 @@ class Database:
         for table in self.tables:
             ws: WriteOnlyWorksheet = wb.create_sheet(table.name)
             ws.append([c.title for c in table.columns])
-            if add_note:
+            if add_comment:
                 ws.append([c.comment for c in table.columns])
             for i in range(table._max_row_num):
                 ws.append([c.get_data(i) for c in table.columns])
