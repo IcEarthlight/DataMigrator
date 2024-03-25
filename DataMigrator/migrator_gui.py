@@ -624,21 +624,25 @@ class MigratorUI(tk.Tk):
         self.tk.call("tk", "scaling", scale_factor / 75)
         self.sf: float = scale_factor / 100
 
-        self.file_entry_frame = FileEntryFrame(self)
-        self.args_entry_frame = ArgsEntryFrame(self)
+        try:
+            self.file_entry_frame = FileEntryFrame(self)
+            self.args_entry_frame = ArgsEntryFrame(self)
 
-        # The cancel and run buttom at the bottom.
-        self.frame_bottom = ttk.Frame(self)
-        self.frame_bottom.pack(fill=tk.X, padx=20*self.sf, pady=10*self.sf)
+            # The cancel and run buttom at the bottom.
+            self.frame_bottom = ttk.Frame(self)
+            self.frame_bottom.pack(fill=tk.X, padx=20*self.sf, pady=10*self.sf)
 
-        self.button_cancel = ttk.Button(self.frame_bottom, text="Cancel", command=self.destroy)
-        self.button_cancel.pack(side=tk.LEFT)
+            self.button_cancel = ttk.Button(self.frame_bottom, text="Cancel", command=self.destroy)
+            self.button_cancel.pack(side=tk.LEFT)
 
-        self.button_run = ttk.Button(self.frame_bottom, text="Run", command=self.launch)
-        self.button_run.pack(side=tk.RIGHT)
-        self.button_run.config(state=tk.DISABLED)
+            self.button_run = ttk.Button(self.frame_bottom, text="Run", command=self.launch)
+            self.button_run.pack(side=tk.RIGHT)
+            self.button_run.config(state=tk.DISABLED)
 
-        self.mainloop()
+            self.mainloop()
+        
+        except Exception as e:
+             messagebox.showerror(type(e).__name__ + "occured when initing", e)
     
     def launch(self):
         """ Called when run buttom is clicked and start migrating data. """
@@ -664,6 +668,8 @@ class MigratorUI(tk.Tk):
 
         except FileNotFoundError:
             messagebox.showwarning("SourceDirError", "Path not specified.")
+        except Exception as e:
+            messagebox.showerror(type(e).__name__ + "occured when running", e)
 
         self.file_entry_frame.set_enabled(True)
         self.args_entry_frame.set_enabled(True)
