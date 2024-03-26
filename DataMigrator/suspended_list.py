@@ -116,7 +116,8 @@ class SuspendedList:
     def raise_exception(self, table_name: str) -> NoReturn:
         """ As its name shows. """
         sus_confs: list[_SuspendInfo]
+        s: str = ''
         for _, sus_confs in self.waitlist.items():
             for sc in sus_confs:
-                print(f"{table_name} {sc.conf["title"]} {sc.index} -> {sc.wait_for}")
-        raise Exception("DependencyError")
+                s += f"{table_name} {sc.conf["title"]} {sc.index} -> {sc.wait_for}\n"
+        raise Exception("DependencyError:\n" + s)

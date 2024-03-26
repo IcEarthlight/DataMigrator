@@ -642,7 +642,7 @@ class MigratorUI(tk.Tk):
             self.mainloop()
         
         except Exception as e:
-             messagebox.showerror(type(e).__name__ + "occured when initing", e)
+             messagebox.showerror(type(e).__name__ + " occured when initing", e)
     
     def launch(self):
         """ Called when run buttom is clicked and start migrating data. """
@@ -669,7 +669,7 @@ class MigratorUI(tk.Tk):
         except FileNotFoundError:
             messagebox.showwarning("SourceDirError", "Path not specified.")
         except Exception as e:
-            messagebox.showerror(type(e).__name__ + "occured when running", e)
+            messagebox.showerror(type(e).__name__ + " occured when running", e)
 
         self.file_entry_frame.set_enabled(True)
         self.args_entry_frame.set_enabled(True)

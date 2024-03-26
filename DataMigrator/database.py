@@ -81,6 +81,11 @@ class Column:
             return self.data[index]
         else:
             return None
+        
+    def del_row(self, index: int) -> None:
+        """ Delete a row of given index. """
+        if index < len(self.data):
+            del self.data[index]
     
     def swap_row(self, i0: int, i1: int) -> None:
         """ Swap two rows by given the two indexes. """
@@ -127,6 +132,10 @@ class PlaceHolderColumn(Column):
     @override
     def swap_row(self, i0: int, i1: int) -> None:
         pass
+    
+    @override
+    def del_row(self, index: int) -> None:
+        pass
 
 class EmptyColumn(Column):
     """ A empty Column with noting in it. """
@@ -143,6 +152,10 @@ class EmptyColumn(Column):
     
     @override
     def swap_row(self, i0: int, i1: int) -> None:
+        pass
+    
+    @override
+    def del_row(self, index: int) -> None:
         pass
 
 class FilledColumn(Column):
@@ -163,12 +176,15 @@ class FilledColumn(Column):
     def swap_row(self, i0: int, i1: int) -> None:
         pass
     
+    @override
+    def del_row(self, index: int) -> None:
+        pass
+    
 class IndexColumn(Column):
     """ A index Column marks the index of each row. """
     def __init__(self, title: str, comment: str | None = None, start_from: int = 1):
         Column.__init__(self, title, comment)
         self.start_from: int = start_from
-        self.swap_history: dict = {}
     
     @override
     def count(self) -> int:
@@ -176,14 +192,22 @@ class IndexColumn(Column):
 
     @override
     def get_data(self, index: int) -> int:
-        if index in self.swap_history:
-            return self.start_from + self.swap_history[index]
+        if index < len(self.data):
+            return self.data[index]
         return self.start_from + index
     
     @override
     def swap_row(self, i0: int, i1: int) -> None:
-        self.swap_history[i0] = i1 if i1 not in self.swap_history else self.swap_history[i1]
-        self.swap_history[i1] = i0 if i0 not in self.swap_history else self.swap_history[i0]
+        for i in range(len(self.data)-1, max(i0, i1)):
+            self.data.append(self.get_data[i])
+        Column.swap_row(self, i0, i1)
+    
+    @override
+    def del_row(self, index: int) -> None:
+        for i in range(len(self.data)-1, index):
+            self.data.append(self.get_data[i])
+        Column.del_row(self, index)
+        self.start_from += 1
 
 
 class Table:
@@ -327,6 +351,12 @@ class Table:
             table.
         """
         return self.columns[self._column_index[column_title]]
+    
+    def del_row(self, index: int) -> None:
+        """ Delete a row of given index. """
+        c: Column
+        for c in self.columns:
+            c.del_row(index)
     
     def swap_row(self, i0: int, i1: int) -> None:
         """ Swap two rows of given index i0 and i1, affecting all columns in the table. """

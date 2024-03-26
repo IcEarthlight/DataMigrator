@@ -264,8 +264,8 @@ If you have a really complex logic and very long code, it would be terrible to w
 For instance, if you have a script like this:
 
 ``` Python
-last = None,
-ind = 0,
+last = None
+ind = 0
 for i in range(l):
     if dpd[0][1] == last:
         ind += 1

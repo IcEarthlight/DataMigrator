@@ -2,7 +2,7 @@
 
 DataMigrator provides a series of classes and functions that helps you to manage, operate, and transfer data from/to excel files, which enables you to migrate data from one (or maybe more) file(s) to another with ease.
 
-.rjson config file is the core feature of DataMigrator. It is a simple, easy-to-handle while powerful tool, containing all the instructions of dealing with the input data, the column mapping, pre- and post-processing, and anything you want to apply to your data. Its format follows a variation of relaxed json. In .rjson for DataMigrator, you don't have to add quotes to the keys and values that do not contains any following symbols `'",:[]{}`, and spaces are allowed to the keys and values without quotes too. For more details about .rjson config file, see [About_rjson.md](https://raw.githubusercontent.com/IcEarthlight/DataMigrator/master/About_rjson.md)
+.rjson config file is the core feature of DataMigrator. It is a simple, easy-to-handle while powerful tool, containing all the instructions of dealing with the input data, the column mapping, pre- and post-processing, and anything you want to apply to your data. Its format follows a variation of relaxed json. In .rjson for DataMigrator, you don't have to add quotes to the keys and values that do not contains any following symbols `'",:[]{}`, and spaces are allowed to the keys and values without quotes too. For more details about .rjson config file, see [About_rjson.md](https://github.com/IcEarthlight/DataMigrator/blob/master/About_rjson.md)
 
 ## How to use
 
@@ -28,7 +28,7 @@ src_db: Database = Database.import_from_xlsx(read_path)
 write_db = mt.execute_migration(config_path, src_db)
 write_db.export_to_xlsx(save_path)
 ```
-See more examples in the [Examples](https://raw.githubusercontent.com/IcEarthlight/DataMigrator/master/Examples) folder.
+See more examples in the [Examples](https://github.com/IcEarthlight/DataMigrator/tree/master/Examples) folder.
 
 ## Requirements
 
