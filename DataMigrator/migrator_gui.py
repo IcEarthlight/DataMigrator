@@ -211,7 +211,7 @@ class FileEntryFrame(ttk.Frame):
         )
         self.source_loaders: list[FileEntryLine] = [
             FileEntryLine(
-                self, master, 1, "Source File Path:",
+                self, master, 1, "Sourch File Path:",
                 filetypes = [("Microsoft Excel", (".xls", ".xlsx"))],
                 enabled = False
             )
@@ -241,17 +241,24 @@ class FileEntryFrame(ttk.Frame):
         for i in range(len(self.source_loaders)-1, 0, -1):
             self.source_loaders[i].destroy()
             del self.source_loaders[i]
+        self.source_loaders[0].label.configure(text="Source File Path:")
         self.source_loaders[0].set_enabled(False)
         self.outdir_selector.set_enabled(False)
 
-    def additional_input(self, num: int) -> None:
+    def additional_input(self, num: int, suffix: list[str]) -> None:
         """ Add additional source loader lines. """
         self.outdir_selector.set_row(num + 2)
-        for _ in range(num):
+        for i in range(num):
             row_index = len(self.source_loaders) + 1
+            file_desc: str
+            if suffix:
+                file_desc = f"{suffix[i]} Path:"
+            else:
+                file_desc = f"Source File Path{row_index}:"
+            
             self.source_loaders.append(
                 FileEntryLine(
-                    self, self.master, row_index, f"Source File Path{row_index}:",
+                    self, self.master, row_index, file_desc,
                     filetypes = [("Microsoft Excel", (".xls", ".xlsx"))],
                     enabled = True
                 )
@@ -274,9 +281,20 @@ class FileEntryFrame(ttk.Frame):
                 return
             
             if "additional_input" in self.master.mconfig:
-                additional_input_num: int = int(self.master.mconfig["additional_input"])
-                if additional_input_num > 0:
-                    self.additional_input(additional_input_num)
+                additional_input_num: int
+                if isinstance(self.master.mconfig["additional_input"], list):
+                    additional_input_num = len(self.master.mconfig["additional_input"])
+                    if additional_input_num > 0:
+                        self.additional_input(additional_input_num, self.master.mconfig["additional_input"])
+                else:
+                    additional_input_num = int(self.master.mconfig["additional_input"])
+                    if additional_input_num > 0:
+                        self.additional_input(additional_input_num)
+            
+            # Set input_desc if necessary.
+            input_desc: str = self.master.mconfig.get("input_desc", "Source File") + " Path:"
+            self.source_loaders[0].label.configure(text = input_desc)
+
             self.set_enabled(True)
             self.master.args_entry_frame.set_enabled(True)
             self.master.button_run.config(state=tk.NORMAL)
