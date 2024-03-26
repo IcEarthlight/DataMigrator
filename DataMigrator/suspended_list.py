@@ -39,8 +39,7 @@ class _SuspendInfo:
                 self.wait_for.append((m.group(2), wait_for[i][1]))
         
         if not self.wait_for:
-            print(f"{index} -> {wait_for}")
-            raise Exception(f"DependencyError")
+            raise Exception(f"DependencyError:\n{conf["title"]} {index} -> {wait_for}")
         
     def release(self) -> None:
         self.release_func(self.conf, self.index)
