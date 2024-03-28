@@ -17,6 +17,7 @@ def substitute_args(s: str, args: list):
 
 def dereference_column(src_db: Database,
                        ex_src_db: list[Database],
+                       sub_db: Database,
                        tgt_db: Database,
                        table_ref: str,
                        column_ref: str
@@ -38,6 +39,9 @@ def dereference_column(src_db: Database,
         ).get_column(
             column_ref
         )
+    elif match := re.match(r"(_Sub)([0-9]+)", table_ref):
+        sub_index: int = int(match.group(2))
+        src_col = sub_db.tables[sub_index].get_column(column_ref)
     else:
         src_col = src_db.get_table(
             table_ref
@@ -73,6 +77,7 @@ def parse_migration_config(fp: PathLike, encoding: str | None = None) -> dict:
 
 def process_cconf(src_db: Database,
                   ex_src_db: list[Database],
+                  sub_db: Database,
                   tgt_db: Database,
                   t: Table,
                   col_conf: dict,
@@ -119,7 +124,8 @@ def process_cconf(src_db: Database,
 
     if "copy_from" in col_conf:
         try:
-            src_col: Column = dereference_column(src_db, ex_src_db, tgt_db, *col_conf["copy_from"])
+            src_col: Column = dereference_column(src_db, ex_src_db, sub_db,
+                                                 tgt_db, *col_conf["copy_from"])
         except KeyError as e:
             return False
         
@@ -161,7 +167,7 @@ def process_cconf(src_db: Database,
         )
     elif "dependence" in col_conf:
         try:
-            dpd: list[list] = [dereference_column(src_db, ex_src_db, tgt_db, *ref).data
+            dpd: list[list] = [dereference_column(src_db, ex_src_db, sub_db, tgt_db, *ref).data
                                for ref in col_conf["dependence"]]
         except KeyError as e:
             return False
@@ -181,6 +187,25 @@ def process_cconf(src_db: Database,
     
     return True
 
+
+def get_sub_db(config: PathLike | dict, src_db: Database) -> Database:
+    """ Get the sub tables packed in a database from the source database. """
+    sub_db = Database()
+    if not isinstance(config, dict):
+        config: dict = parse_migration_config(config, "UTF-8")
+    
+    if "process" in config and "subsheets" in config["process"]:
+        subsheet_conf: list[list] = config["process"]["subsheets"]
+    else:
+        return sub_db
+    
+    for sconf in subsheet_conf:
+        src_table: Table = src_db.get_table(sconf[0])
+        sub_table: Table = src_table.get_subtable(int(sconf[1][0][0]), int(sconf[1][1][0]),
+                                                  int(sconf[1][0][1]), int(sconf[1][1][1]))
+        sub_db.tables.append(sub_table)
+
+    return sub_db
 
 def execute_migration(config: PathLike | dict,
                       src_db: Database,
@@ -203,6 +228,7 @@ def execute_migration(config: PathLike | dict,
     tgt_db: Database = Database()
     if not isinstance(config, dict):
         config: dict = parse_migration_config(config, "UTF-8")
+    sub_db: Database = get_sub_db(config, src_db)
 
     if "process" in config and "pre" in config["process"]:
         exec(pjshon.parse(config["process"]["pre"]))
@@ -211,13 +237,14 @@ def execute_migration(config: PathLike | dict,
     for sconf in config["sheets"]:
         new_table: Table = tgt_db.add_table(sconf["name"])
         
-        sus_list = SuspendedList(lambda conf, ind: process_cconf(src_db, ex_src_db, tgt_db,
-                                                                 new_table, conf, args, ind))
+        sus_list = SuspendedList(lambda conf, ind: process_cconf(src_db, ex_src_db, sub_db,
+                                                                 tgt_db, new_table, conf,
+                                                                 args, ind))
         cconf: dict
         for cconf in sconf["columns"]:
 
-            process_succeed: bool = process_cconf(src_db, ex_src_db, tgt_db,
-                                                  new_table, cconf, args)
+            process_succeed: bool = process_cconf(src_db, ex_src_db, sub_db,
+                                                  tgt_db, new_table, cconf, args)
 
             if not process_succeed:
                 if "copy_from" in cconf:

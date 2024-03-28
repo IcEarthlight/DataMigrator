@@ -271,6 +271,16 @@ class Table:
                 return False
         return True
     
+    def _check_empty_row(self, rindex: int) -> bool:
+        """ Check if a row is empty. """
+        c: Column
+        for c in self.columns:
+            if len(c.data) < rindex:
+                continue
+            if c.data[rindex] is not None:
+                return False
+        return True
+    
     def _pop_back(self) -> None:
         """ Clear and delete the last row of the Table, do not affect the columns that has
             less rows.
@@ -288,6 +298,14 @@ class Table:
         """
         while self._check_empty_ends():
             self._pop_back()
+
+    def _truncate_below_empty_row(self) -> None:
+        """ If there is an empty row in the table, truncate all rows below the empty row. """
+        for i in range(self._max_row_num):
+            if self._check_empty_row(i):
+                for i in range(i, self._max_row_num):
+                    self._pop_back()
+                break
 
     def append_column(self,
                       title: str,
@@ -357,6 +375,7 @@ class Table:
         c: Column
         for c in self.columns:
             c.del_row(index)
+        self._max_row_num -= 1
     
     def swap_row(self, i0: int, i1: int) -> None:
         """ Swap two rows of given index i0 and i1, affecting all columns in the table. """
@@ -380,6 +399,28 @@ class Table:
         
         for i in range(index, self._max_row_num - 1):
             self.swap_row(i, i + 1)
+    
+    def get_subtable(self, r0: int, c0: int, r1: int = -1, c1: int = -1) -> Table:
+        """ Create and return a subtable from part of this table. """
+        subtable: Table = Table("Subtable")
+        if r1 == -1:
+            r1 = self._max_row_num + 1
+        if c1 == -1:
+            c1 = len(self.columns)
+        
+        if r0 == 0:
+            for c in range(c0, c1):
+                title: str = self.columns[c].title
+                data: list = self.columns[c].data[:r1-1]
+                subtable.append_column(title, None, Column, data=data)
+        else:
+            for c in range(c0, c1):
+                title: str = str(self.columns[c].data[r0-1])
+                data: list = self.columns[c].data[r0:r1-1]
+                subtable.append_column(title, None, Column, data=data)
+        
+        subtable._truncate_below_empty_row()
+        return subtable
     
     @staticmethod
     def create_from_worksheet(ws: ReadOnlyWorksheet) -> Table:
