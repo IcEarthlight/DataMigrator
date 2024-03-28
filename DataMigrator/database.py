@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from os import PathLike
 from typing import Iterable, Callable, override
 
@@ -364,11 +365,17 @@ class Table:
             return range(self._max_row_num-1, -1, -1)
         return range(self._max_row_num)
     
-    def get_column(self, column_title: str) -> Column:
+    def get_column(self, column_title: str, loose: bool = False) -> Column:
         """ Returns the column of the given title. Raise a KeyError if no such column in the
             table.
         """
-        return self.columns[self._column_index[column_title]]
+        if loose:
+            for c in self.columns:
+                if re.sub(r"\s", '', c.title) == re.sub(r"\s", '', column_title):
+                    return c
+            raise KeyError(column_title)
+        else:
+            return self.columns[self._column_index[column_title]]
     
     def del_row(self, index: int) -> None:
         """ Delete a row of given index. """
@@ -473,7 +480,7 @@ class Database:
         """ Create and return a Database object using the data from a .xlsx file. """
         db: Database = Database()
 
-        wb: Workbook = openpyxl.load_workbook(path, read_only=True)
+        wb: Workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
         ws: ReadOnlyWorksheet
         for i, ws in enumerate(wb.worksheets):
             new_table: Table = Table.create_from_worksheet(ws)

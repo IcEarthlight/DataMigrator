@@ -41,7 +41,7 @@ def dereference_column(src_db: Database,
         )
     elif match := re.match(r"(_Sub)([0-9]+)", table_ref):
         sub_index: int = int(match.group(2))
-        src_col = sub_db.tables[sub_index].get_column(column_ref)
+        src_col = sub_db.tables[sub_index].get_column(column_ref, True)
     else:
         src_col = src_db.get_table(
             table_ref
@@ -170,6 +170,7 @@ def process_cconf(src_db: Database,
             dpd: list[list] = [dereference_column(src_db, ex_src_db, sub_db, tgt_db, *ref).data
                                for ref in col_conf["dependence"]]
         except KeyError as e:
+            print(type(e).__name__, e)
             return False
         
         l: int = len(dpd[0])
