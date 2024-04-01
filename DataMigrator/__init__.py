@@ -36,3 +36,5 @@ write_db = mt.execute_migration(config_path, src_db)
 write_db.export_to_xlsx(save_path)
 ```
 """
+
+__version__ = "1.0.3"

@@ -10,6 +10,7 @@ from typing import Any, Iterable, Literal, Callable, override
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
+import DataMigrator
 import DataMigrator.migration_toolkit as mt
 
 def choose_file(entry: ttk.Entry,
@@ -633,7 +634,7 @@ class MigratorUI(tk.Tk):
             are optional.
         """
         tk.Tk.__init__(self, screenName, baseName, className, useTk, sync, use)
-        self.title("Migrator")
+        self.title("Migrator " + DataMigrator.__version__)
         self.geometry("600x300")
         self.mconfig: dict | None = None
 

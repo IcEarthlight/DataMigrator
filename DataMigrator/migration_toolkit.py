@@ -3,6 +3,7 @@ import re
 
 from tkinter import Frame
 
+import DataMigrator
 from DataMigrator.database import Column, EmptyColumn, FilledColumn, IndexColumn, Table, Database
 from DataMigrator.suspended_list import SuspendedList
 from DataMigrator import pjshon
@@ -71,8 +72,14 @@ def parse_migration_config(fp: PathLike, encoding: str | None = None) -> dict:
         # add quotes to values with overlapping intervals
         json_string = re.sub(r"([:,][\s\n]+)([^\'\",:\[\]{}\n\r]+?)([\s\n]*[,\]}])",
                              r'\1"\2"\3', json_string)
+    
+    conf: dict = json.loads(json_string)
+    if "version" in conf and conf["version"] > DataMigrator.__version__:
+        raise Exception(f"DataMigrator {conf["version"]} is required to parse the config, " \
+                        f"the current version is {DataMigrator.__version__}, please keep " \
+                        f"the package up-to-date.")
         
-    return json.loads(json_string)
+    return conf
 
 
 def process_cconf(src_db: Database,
