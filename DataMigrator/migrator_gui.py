@@ -682,7 +682,7 @@ class MigratorUI(tk.Tk):
             tgt_db.export_to_xlsx(self.file_entry_frame.get_tgt_dir())
 
             messagebox.showinfo("Migrate Complete",
-                                "Migration Colpleted, export to path " +
+                                "Migration Completed, export to path " +
                                     self.file_entry_frame.get_tgt_dir())
 
         except FileNotFoundError:
