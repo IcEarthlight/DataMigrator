@@ -205,8 +205,8 @@ class IndexColumn(Column):
     
     @override
     def del_row(self, index: int) -> None:
-        for i in range(len(self.data)-1, index):
-            self.data.append(self.get_data[i])
+        for i in range(len(self.data), index+1):
+            self.data.append(self.get_data(i))
         Column.del_row(self, index)
         self.start_from += 1
 
@@ -222,9 +222,18 @@ class Table:
         # Methods
         - import_from_xlsx (staticmethod)
         - export_to_xlsx
-        - has_table
-        - get_table
-        - add_table
+        - append_column
+        - extend_columns
+        - suspended_column
+        - insert_column
+        - index
+        - get_range
+        - get_column
+        - del_row
+        - swap_row
+        - move_to_end
+        - get_subtable
+        - create_from_worksheet
     """
 
     def __init__(self, name: str, columns: list[Column] | None = None):
@@ -266,6 +275,8 @@ class Table:
         """
         c: Column
         for c in self.columns:
+            if c.count() == 0:
+                return False
             if len(c.data) < self._max_row_num:
                 continue
             if c.data[-1] is not None:
@@ -299,11 +310,21 @@ class Table:
         """
         while self._check_empty_ends():
             self._pop_back()
+    
+    def _clear_empty_rows(self) -> None:
+        for i in range(self._max_row_num-1, -1, -1):
+            if self._check_empty_row(i):
+                self.del_row(i)
 
     def _truncate_below_empty_row(self) -> None:
-        """ If there is an empty row in the table, truncate all rows below the empty row. """
+        """ If there is two empty rows in the table, truncate all rows below the empty row. """
+        count = 0
         for i in range(self._max_row_num):
             if self._check_empty_row(i):
+                count += 1
+            else:
+                count = 0
+            if count >= 2:
                 for i in range(i, self._max_row_num):
                     self._pop_back()
                 break
@@ -372,6 +393,8 @@ class Table:
         if loose:
             for c in self.columns:
                 if re.sub(r"\s", '', c.title) == re.sub(r"\s", '', column_title):
+                    return c
+                elif re.match(column_title, c.title):
                     return c
             raise KeyError(column_title)
         else:
@@ -451,6 +474,7 @@ class Table:
             t._max_row_num = i
         
         t._clear_empty_ends()
+        t._clear_empty_rows()
         return t
 
 
@@ -510,11 +534,19 @@ class Database:
         """ Return true if the Database has a table of the name. """
         return name in self._table_index
     
-    def get_table(self, name: str) -> Table:
+    def get_table(self, name: str, loose: bool = False) -> Table:
         """ Returns the table of the given name. Raise a KeyError if no such table in the
             database.
         """
-        return self.tables[self._table_index[name]]
+        if loose:
+            for t in self.tables:
+                if re.sub(r"\s", '', t.name) == re.sub(r"\s", '', name):
+                    return t
+                elif re.match(name, t.name):
+                    return t
+            raise KeyError(name)
+        else:
+            return self.tables[self._table_index[name]]
 
     def add_table(self, name: str) -> Table:
         """ Add an empty table with nothing in it. """
