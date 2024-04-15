@@ -1,8 +1,6 @@
 from os import PathLike
 import re
 
-from tkinter import Frame
-
 import DataMigrator
 from DataMigrator.database import Column, EmptyColumn, FilledColumn, IndexColumn, Table, Database
 from DataMigrator.suspended_list import SuspendedList
@@ -238,8 +236,17 @@ def execute_migration(config: PathLike | dict,
         config: dict = parse_migration_config(config, "UTF-8")
     sub_db: Database = get_sub_db(config, src_db)
 
+    context: dict[str: ...] = {"config": config, "src_db": src_db, "sub_db": sub_db,
+                               "ex_src_db": ex_src_db, "tgt_db": tgt_db, "args": args,
+                               "Database": Database, "Table": Table, "Column": Column,
+                               "SuspendedList": SuspendedList, "pjshon": pjshon,
+                               "mapping_functions": mapping_functions}
     if "process" in config and "pre" in config["process"]:
-        exec(pjshon.parse(config["process"]["pre"]))
+        exec(pjshon.parse(config["process"]["pre"]), context)
+    src_db = context["src_db"]
+    sub_db = context["sub_db"]
+    ex_src_db = context["ex_src_db"]
+    tgt_db = context["tgt_db"]
 
     sconf: dict
     for sconf in config["sheets"]:
@@ -269,11 +276,19 @@ def execute_migration(config: PathLike | dict,
             else:
                 sus_list.check((sconf["name"], cconf["title"]))
         
-    if sus_list.something_here():
+    if "sus_list" in locals().keys() and sus_list.something_here():
         sus_list.raise_exception(new_table.name)
             
-
+    context: dict[str: ...] = {"config": config, "src_db": src_db, "sub_db": sub_db,
+                               "ex_src_db": ex_src_db, "tgt_db": tgt_db, "args": args,
+                               "Database": Database, "Table": Table, "Column": Column,
+                               "SuspendedList": SuspendedList, "pjshon": pjshon,
+                               "mapping_functions": mapping_functions}
     if "process" in config and "post" in config["process"]:
-        exec(pjshon.parse(config["process"]["post"]))
+        exec(pjshon.parse(config["process"]["post"]), context)
+    src_db = context["src_db"]
+    sub_db = context["sub_db"]
+    ex_src_db = context["ex_src_db"]
+    tgt_db = context["tgt_db"]
     
     return tgt_db

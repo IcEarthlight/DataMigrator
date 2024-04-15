@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import re
+import csv
 from os import PathLike
 from typing import Iterable, Callable, override
 
@@ -118,7 +120,7 @@ class Column:
         for i in range(len(self.data)):
             if self.data[i] in mapping:
                 m = mapping[self.data[i]]
-            else:
+            elif "_Other" in mapping:
                 m = mapping["_Other"]
 
             if m != "_Origin":
@@ -476,6 +478,29 @@ class Table:
         t._clear_empty_ends()
         t._clear_empty_rows()
         return t
+    
+    @staticmethod
+    def create_from_csv(rd: Iterable) -> Table:
+        """ Create and return a Table object using the data from a csv reader object. """
+        t: Table = Table("csv")
+        
+        r: list
+        for i, r in enumerate(rd):
+
+            if not t.columns: # first 
+                for j, c in enumerate(r):
+                    t.columns.append(Column(c))
+                    t._column_index[c] = j
+                continue
+            
+            for j, c in enumerate(r):
+                t.columns[j].add_data(c)
+        else:
+            t._max_row_num = i
+        
+        t._clear_empty_ends()
+        t._clear_empty_rows()
+        return t
 
 
 class Database:
@@ -514,6 +539,26 @@ class Database:
         wb.close()
         
         return db
+
+    @staticmethod
+    def import_from_csv(path: PathLike) -> Database:
+        """ Create and return a Database object using the data from a .csv file. """
+        db: Database = Database()
+        reader = csv.reader(open(path))
+        db.tables.append(Table.create_from_csv(reader))
+        return db
+    
+    @staticmethod
+    def import_from_file(path: PathLike) -> Database:
+        """ Create and return a Database object using the data from a supported file. """
+        ext: str = os.path.splitext(path)[1]
+
+        if ext in (".xls", ".xlsx"):
+            return Database.import_from_xlsx(path)
+        elif ext == ".csv":
+            return Database.import_from_csv(path)
+        else:
+            raise Exception(f"Do not support {ext} file.")
 
     def export_to_xlsx(self, savePath: PathLike, add_comment: bool = False) -> None:
         """ Export the Database object to a .xlsx file. """

@@ -213,7 +213,8 @@ class FileEntryFrame(ttk.Frame):
         self.source_loaders: list[FileEntryLine] = [
             FileEntryLine(
                 self, master, 1, "Sourch File Path:",
-                filetypes = [("Microsoft Excel", (".xls", ".xlsx"))],
+                filetypes = [("Microsoft Excel", (".xls", ".xlsx")),
+                             ("Comma-Separated Values", (".csv"))],
                 enabled = False
             )
         ]
@@ -673,8 +674,8 @@ class MigratorUI(tk.Tk):
         try:
             from DataMigrator.database import Database
             src_dir, ex_src_dirs = self.file_entry_frame.get_src_dirs()
-            src_db: Database = Database.import_from_xlsx(src_dir)
-            ex_src_db: list[Database] = [Database.import_from_xlsx(esd) for esd in ex_src_dirs]
+            src_db: Database = Database.import_from_file(src_dir)
+            ex_src_db: list[Database] = [Database.import_from_file(esd) for esd in ex_src_dirs]
 
             args: list = self.args_entry_frame.get_args()
 
