@@ -476,7 +476,7 @@ class Table:
             t._max_row_num = i
         
         t._clear_empty_ends()
-        t._clear_empty_rows()
+        # t._clear_empty_rows()
         return t
     
     @staticmethod
@@ -499,7 +499,7 @@ class Table:
             t._max_row_num = i
         
         t._clear_empty_ends()
-        t._clear_empty_rows()
+        # t._clear_empty_rows()
         return t
 
 
@@ -544,7 +544,7 @@ class Database:
     def import_from_csv(path: PathLike) -> Database:
         """ Create and return a Database object using the data from a .csv file. """
         db: Database = Database()
-        reader = csv.reader(open(path))
+        reader = csv.reader(open(path, encoding="UTF-8"))
         db.tables.append(Table.create_from_csv(reader))
         return db
     

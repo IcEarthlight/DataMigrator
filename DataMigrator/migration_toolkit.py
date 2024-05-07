@@ -239,14 +239,23 @@ def execute_migration(config: PathLike | dict,
     context: dict[str: ...] = {"config": config, "src_db": src_db, "sub_db": sub_db,
                                "ex_src_db": ex_src_db, "tgt_db": tgt_db, "args": args,
                                "Database": Database, "Table": Table, "Column": Column,
+                               "DataMigrator": DataMigrator, "EmptyColumn": EmptyColumn,
+                               "FilledColumn": FilledColumn, "IndexColumn": IndexColumn,
                                "SuspendedList": SuspendedList, "pjshon": pjshon,
-                               "mapping_functions": mapping_functions}
+                               "mapping_functions": mapping_functions, "config": config,
+                               "substitute_args": substitute_args,
+                               "dereference_column": dereference_column,
+                               "parse_migration_config": parse_migration_config,
+                               "process_cconf": process_cconf,
+                               "get_sub_db": get_sub_db}
     if "process" in config and "pre" in config["process"]:
         exec(pjshon.parse(config["process"]["pre"]), context)
     src_db = context["src_db"]
     sub_db = context["sub_db"]
     ex_src_db = context["ex_src_db"]
     tgt_db = context["tgt_db"]
+    config = context["config"]
+    args = context["args"]
 
     sconf: dict
     for sconf in config["sheets"]:
@@ -283,7 +292,14 @@ def execute_migration(config: PathLike | dict,
                                "ex_src_db": ex_src_db, "tgt_db": tgt_db, "args": args,
                                "Database": Database, "Table": Table, "Column": Column,
                                "SuspendedList": SuspendedList, "pjshon": pjshon,
-                               "mapping_functions": mapping_functions}
+                               "DataMigrator": DataMigrator, "EmptyColumn": EmptyColumn,
+                               "FilledColumn": FilledColumn, "IndexColumn": IndexColumn,
+                               "mapping_functions": mapping_functions, "config": config,
+                               "substitute_args": substitute_args,
+                               "dereference_column": dereference_column,
+                               "parse_migration_config": parse_migration_config,
+                               "process_cconf": process_cconf,
+                               "get_sub_db": get_sub_db}
     if "process" in config and "post" in config["process"]:
         exec(pjshon.parse(config["process"]["post"]), context)
     src_db = context["src_db"]

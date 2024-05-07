@@ -680,7 +680,8 @@ class MigratorUI(tk.Tk):
             args: list = self.args_entry_frame.get_args()
 
             tgt_db: Database = mt.execute_migration(self.mconfig, src_db, ex_src_db, args)
-            tgt_db.export_to_xlsx(self.file_entry_frame.get_tgt_dir())
+            if tgt_db:
+                tgt_db.export_to_xlsx(self.file_entry_frame.get_tgt_dir())
 
             messagebox.showinfo("Migrate Complete",
                                 "Migration Completed, export to path " +
