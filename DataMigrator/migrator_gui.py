@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import os
+import sys
+import json
 import ctypes
 import itertools
+
 from os import path, PathLike
 from abc import ABC, abstractmethod
 from tkinter.constants import LEFT
@@ -13,7 +17,7 @@ from tkinter import ttk, filedialog, messagebox
 import DataMigrator
 import DataMigrator.migration_toolkit as mt
 
-def choose_file(entry: ttk.Entry,
+def choose_file(entry: ttk.Entry | ttk.Combobox,
                 filetypes: Iterable[tuple[str, str | list[str] | tuple[str, ...]]],
                 command: Callable | None = None
 ) -> PathLike:
@@ -30,7 +34,7 @@ def choose_file(entry: ttk.Entry,
     else:
         return entry.get()
 
-def choose_save(entry: ttk.Entry,
+def choose_save(entry: ttk.Entry | ttk.Combobox,
                 filetypes: Iterable[tuple[str, str | list[str] | tuple[str, ...]]],
                 command: Callable | None = None
 ) -> PathLike:
@@ -67,6 +71,44 @@ def choose_dir(entry: ttk.Entry,
         return filepath
     else:
         return entry.get()
+
+
+def hist_load(conf: str) -> dict[str, str | list[str]] | None:
+    """ Load the status from ./Config/.history.json """
+    if not path.isfile("./Configs/.history.json"):
+        return None
+    
+    with open("./Configs/.history.json", 'r') as f:
+        hists: dict = json.load(f)
+    
+    for i in range(len(hists["confHist"])):
+        if hists["confHist"][i]["config"] == conf:
+            return hists["confHist"][i]
+    return None
+
+def hist_store(hist_conf: dict[str, str | list[str]]) -> None:
+    """ Store the status to ./Config/.history.json """
+    if not path.isfile(hist_conf["config"]):
+        return
+
+    if not path.isfile("./Configs/.history.json"):
+        hists: dict = {}
+    else:
+        with open("./Configs/.history.json", 'r') as f:
+            hists: dict = json.load(f)
+    
+    if not "confHist" in hists:
+        hists["confHist"] = []
+    
+    for i in range(len(hists["confHist"])):
+        if hists["confHist"][i]["config"] == hist_conf["config"]:
+            hists["confHist"][i] = hist_conf
+            break
+    else:
+        hists["confHist"].append(hist_conf)
+    
+    with open("./Configs/.history.json", 'w') as f:
+        json.dump(hists, f)
 
 
 class FileEntryLine:
@@ -163,10 +205,132 @@ class FileEntryLine:
         self.label.destroy()
         self.entry.destroy()
         self.button.destroy()
+    
+    def set_dir(self, new_dir: str) -> None:
+        """ Set the content in the entry box. """
+        self.entry.delete(0, tk.END)
+        self.entry.insert(tk.END, new_dir)
 
     def get_dir(self) -> str:
         """ Get the content in the entry box. """
         dir: str = self.entry.get()
+        if dir:
+            return dir
+        else:
+            raise FileNotFoundError()
+
+
+class ConfigChooseLine:
+    """ Represents the config choosing lines at the top of the GUI, which contains the
+        instruction text on the left, an combobox in the mid, and a browse button on the
+        right.
+
+        # Attributes
+        - parent: the frame of all file entry lines
+        - master: the root widget of the GUI
+        - label: the label object on the left
+        - entry: the entry box object in the mid
+        - button: the button object on the right
+
+        # Methods
+        - set_row: set which row is the line in
+        - set_enabled
+        - destroy
+        - get_dir
+    """
+    def __init__(self,
+                 frame: FileEntryFrame,
+                 master: MigratorUI,
+                 row: int,
+                 desc: str,
+                 filetypes: Iterable[tuple[str, str | list[str] | tuple[str, ...]]] = ...,
+                 enabled: bool = True,
+                 on_load: Callable | None = None
+    ):
+        """ Create a new line on the top for choosing a file/savepath/dir.
+
+            # Args
+            - frame: the frame of all file entry lines
+            - master: the root widget of the GUI
+            - row: which row should the new line be in the frame (do not check if it is
+            overlapped which other line)
+            - desc: the instruction text on the left
+            - filetypes: specify the extention of the file would be chosen/saved
+            - enabled: whether the line is enabled initially
+            - on_load: execute when a new directory is loaded, expecting to receive one
+            argment - the chosen path
+        """
+        self.parent: FileEntryFrame = frame
+        self.master: MigratorUI = master
+
+        self.label = ttk.Label(frame, text=desc)
+        self.combobox = ttk.Combobox(frame)
+
+        config_options: list[str] = [filename for filename in os.listdir("./Configs")
+                                     if filename[-6:] == ".rjson" ]
+        self.combobox["value"] = config_options
+        self.combobox["state"] = "readonly"
+        # self.combobox.
+        
+        if on_load:
+            self.button = ttk.Button(
+                frame,
+                text = "Browse",
+                command = lambda: on_load(choose_file(self.combobox, filetypes))
+            )
+            self.combobox.bind(
+                "<<ComboboxSelected>>",
+                lambda event: on_load(path.join("./Configs",self.combobox.get()))
+            )
+        else:
+            self.button = ttk.Button(
+                frame,
+                text = "Browse",
+                command = lambda: choose_file(self.combobox, filetypes)
+            )
+        
+        self.set_row(row)
+        self.set_enabled(enabled)
+
+    def set_row(self, row: int) -> None:
+        """ Set which row is the line in (do not check if it is overlapped which other line)
+        """
+        self.label.grid(row = row,
+                        column = 0,
+                        sticky = tk.W)
+        self.combobox.grid(row = row,
+                        column = 1,
+                        sticky = tk.W + tk.E,
+                        padx = (5 * self.master.sf, 0))
+        self.button.grid(row = row,
+                         column = 2,
+                         sticky = tk.E,
+                         padx = (5 * self.master.sf, 0))
+    
+    def set_enabled(self, status: bool | Literal["disabled", "normal"]) -> None:
+        """ Toggle the enabled status of the whole line. """
+        if isinstance(status, bool):
+            status = tk.NORMAL if status else tk.DISABLED
+        
+        self.label.config(state = status)
+        self.combobox.config(state = status)
+        self.button.config(state = status)
+    
+    def destroy(self) -> None:
+        """ Distroy all widgets on the line. """
+        self.label.destroy()
+        self.combobox.destroy()
+        self.button.destroy()
+    
+    def set_dir(self, new_dir: str) -> None:
+        """ Set the content in the entry box. """
+        self.combobox.delete(0, tk.END)
+        self.combobox.insert(tk.END, new_dir)
+        self.parent.on_load_config(new_dir)
+
+    def get_dir(self) -> str:
+        """ Get the content in the entry box. """
+        dir: str = self.combobox.get()
         if dir:
             return dir
         else:
@@ -203,9 +367,10 @@ class FileEntryFrame(ttk.Frame):
         self.grid_columnconfigure(1, weight=1)
         
         self.master: MigratorUI = master
+        self.last_config : str | None = None
         
-        self.config_loader = FileEntryLine(
-            self, master, 0, "Config File Path:",
+        self.config_loader = ConfigChooseLine(
+            self, master, 0, "Config File:",
             filetypes = [("Data Migration Config File", "rjson")],
             enabled = True,
             on_load = self.on_load_config
@@ -270,6 +435,16 @@ class FileEntryFrame(ttk.Frame):
         """ Called when the config is loaded. Try to parse the config and save it to mconfig
             attribute in master. Pop up an error box when failed to parse it.
         """
+
+        if self.last_config:
+            hist_conf: dict = {
+                "config": self.last_config,
+                "source": [sl.entry.get() for sl in self.source_loaders],
+                "output": self.outdir_selector.entry.get(),
+                "args": self.master.args_entry_frame.get_args()
+            }
+            hist_store(hist_conf)
+
         self.clear()
         self.master.args_entry_frame.clear()
         self.master.button_run.config(state=tk.DISABLED)
@@ -300,6 +475,13 @@ class FileEntryFrame(ttk.Frame):
             self.set_enabled(True)
             self.master.args_entry_frame.set_enabled(True)
             self.master.button_run.config(state=tk.NORMAL)
+
+            self.last_config = config_path
+            if hist_conf := hist_load(config_path):
+                for i, sl in enumerate(self.source_loaders):
+                    sl.set_dir(hist_conf["source"][i])
+                self.outdir_selector.set_dir(hist_conf["output"])
+                self.master.args_entry_frame.set_args(hist_conf["args"])
     
     def get_src_dirs(self) -> tuple[str, list[str]]:
         """ Return a list of every source file path. """
@@ -340,10 +522,15 @@ class ArgEntry(ABC, ttk.Frame):
         self.row: int = row
     
     @abstractmethod
-    def get_value(self) -> Any:
+    def get_value(self) -> str:
         """ Return the current input (or default) value in the arg entry. """
         ...
         return None
+
+    @abstractmethod
+    def set_value(self, value: str) -> None:
+        """ Set the given value to the arg entry. """
+        ...
     
     @abstractmethod
     def set_enabled(self, status: bool) -> None:
@@ -401,6 +588,10 @@ class ChoiceArgEntry(ArgEntry):
         return self.choice_var.get()
     
     @override
+    def set_value(self, value: str) -> None:
+        self.choice_var.set(value)
+    
+    @override
     def set_enabled(self, status: bool | Literal["disabled", "normal"]) -> None:
         if isinstance(status, bool):
             status = tk.NORMAL if status else tk.DISABLED
@@ -454,6 +645,11 @@ class TextArgEntry(ArgEntry):
     @override
     def get_value(self) -> str:
         return self.textbox.get()
+    
+    @override
+    def set_value(self, value: str) -> None:
+        self.textbox.delete(0, tk.END)
+        self.textbox.insert(tk.END, value)
     
     @override
     def set_enabled(self, status: bool | Literal["disabled", "normal"]) -> None:
@@ -533,11 +729,16 @@ class ArgsEntryLine:
         if self.arg_r:
             self.arg_r.set_enabled(status)
 
-    def get_args(self) -> tuple:
+    def get_args(self) -> tuple[str]:
         if self.arg_r:
             return self.arg_l.get_value(), self.arg_r.get_value()
         else:
             return self.arg_l.get_value(),
+
+    def set_args(self, args: list[str]) -> None:
+        self.arg_l.set_value(args[0])
+        if self.arg_r and len(args) > 1:
+            self.arg_r.set_value(args[1])
     
     def destroy(self) -> None:
         self.arg_l.destroy()
@@ -600,12 +801,17 @@ class ArgsEntryFrame(ttk.Frame):
             ael.destroy()
         self.arg_entry_lines.clear()
     
-    def get_args(self) -> list:
+    def get_args(self) -> list[str]:
         """ Return all current input (or default) value in all arg entries. """
         args: list = []
         for ael in self.arg_entry_lines:
             args.extend(ael.get_args())
         return args
+    
+    def set_args(self, args: list[str]) -> None:
+        """ Set the given values to all arg entries. """
+        for row, two_args in enumerate(itertools.batched(args, 2)):
+            self.arg_entry_lines[row].set_args(two_args)
 
 
 class MigratorUI(tk.Tk):
@@ -643,6 +849,7 @@ class MigratorUI(tk.Tk):
         scale_factor: int = ctypes.windll.shcore.GetScaleFactorForDevice(0)
         self.tk.call("tk", "scaling", scale_factor / 75)
         self.sf: float = scale_factor / 100
+        self.protocol("WM_DELETE_WINDOW", self.store_last_status)
 
         try:
             self.file_entry_frame = FileEntryFrame(self)
@@ -652,22 +859,85 @@ class MigratorUI(tk.Tk):
             self.frame_bottom = ttk.Frame(self)
             self.frame_bottom.pack(fill=tk.X, padx=20*self.sf, pady=10*self.sf)
 
-            self.button_cancel = ttk.Button(self.frame_bottom, text="Cancel", command=self.destroy)
+            self.button_cancel = ttk.Button(self.frame_bottom,
+                                            text="Cancel",
+                                            command=self.store_last_status)
             self.button_cancel.pack(side=tk.LEFT)
 
-            self.button_run = ttk.Button(self.frame_bottom, text="Run", command=self.launch)
+            self.button_run = ttk.Button(self.frame_bottom,
+                                            text="Run",
+                                            command=self.launch)
             self.button_run.pack(side=tk.RIGHT)
             self.button_run.config(state=tk.DISABLED)
+
+            if hist_conf := self.load_last_status():
+                self.file_entry_frame.config_loader.set_dir(hist_conf["config"])
+                for i, sl in enumerate(self.file_entry_frame.source_loaders):
+                    sl.set_dir(hist_conf["source"][i])
+                self.file_entry_frame.outdir_selector.set_dir(hist_conf["output"])
+                self.args_entry_frame.set_args(hist_conf["args"])
 
             self.mainloop()
         
         except Exception as e:
              messagebox.showerror(type(e).__name__ + " occured when initing", e)
     
+    
+    def load_last_status(self) -> dict | None:
+        if not path.isfile("./Configs/.history.json"):
+            return None
+        
+        with open("./Configs/.history.json", 'r') as f:
+            hists: dict = json.load(f)
+        
+        if "lastConf" not in hists or "confHist" not in hists:
+            return None
+        
+        for i in range(len(hists["confHist"])):
+            if hists["confHist"][i]["config"] == hists["lastConf"]:
+                return hists["confHist"][i]
+        return None
+    
+    def store_last_status(self) -> None:
+        if self.file_entry_frame.last_config and path.isfile(self.file_entry_frame.last_config):
+        
+            if not path.isfile("./Configs/.history.json"):
+                hists: dict = {}
+            else:
+                with open("./Configs/.history.json", 'r') as f:
+                    hists: dict = json.load(f)
+            
+            hists["lastConf"] = self.file_entry_frame.last_config
+            if not "confHist" in hists:
+                hists["confHist"] = []
+            
+            for i in range(len(hists["confHist"])):
+                if hists["confHist"][i]["config"] == hists["lastConf"]:
+                    hists["confHist"][i] = {
+                        "config": hists["lastConf"],
+                        "source": [sl.entry.get() for sl in self.file_entry_frame.source_loaders],
+                        "output": self.file_entry_frame.outdir_selector.entry.get(),
+                        "args": self.args_entry_frame.get_args()
+                    }
+                    break
+            else:
+                hists["confHist"].append({
+                    "config": hists["lastConf"],
+                    "source": [sl.entry.get() for sl in self.file_entry_frame.source_loaders],
+                    "output": self.file_entry_frame.outdir_selector.entry.get(),
+                    "args": self.args_entry_frame.get_args()
+                })
+            
+            with open("./Configs/.history.json", 'w') as f:
+                json.dump(hists, f)
+
+        self.destroy()
+        sys.exit()
+    
     def launch(self):
         """ Called when run buttom is clicked and start migrating data. """
-        self.file_entry_frame.set_enabled(False)
-        self.args_entry_frame.set_enabled(False)
+        # self.file_entry_frame.set_enabled(False)
+        # self.args_entry_frame.set_enabled(False)
         self.button_cancel.config(state=tk.DISABLED)
         self.button_run.config(state=tk.DISABLED)
 
@@ -692,7 +962,7 @@ class MigratorUI(tk.Tk):
         except Exception as e:
             messagebox.showerror(type(e).__name__ + " occured when running", e)
 
-        self.file_entry_frame.set_enabled(True)
-        self.args_entry_frame.set_enabled(True)
+        # self.file_entry_frame.set_enabled(True)
+        # self.args_entry_frame.set_enabled(True)
         self.button_cancel.config(state=tk.NORMAL)
         self.button_run.config(state=tk.NORMAL)
