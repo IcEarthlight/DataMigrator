@@ -61,15 +61,29 @@ def parse_migration_config(fp: PathLike, encoding: str | None = None) -> dict:
     with open(fp, encoding=encoding, mode='r') as f:
         json_string = f.read()
 
-        # add quotes to keys
-        json_string = re.sub(r"([{,]\s*)([^\'\",:\[\]{}\n\r]+?)(:)",
-                             r'\1"\2"\3', json_string)
-        # add quotes to values
-        json_string = re.sub(r"([{\[:,][\s\n]*)([^\'\",:\[\]{}\n\r]+?)([\s\n]*[,])",
-                             r'\1"\2"\3', json_string)
-        # add quotes to values with overlapping intervals
-        json_string = re.sub(r"([:,][\s\n]+)([^\'\",:\[\]{}\n\r]+?)([\s\n]*[,\]}])",
-                             r'\1"\2"\3', json_string)
+        entry_start: int = 0
+        entry_end: int = 0
+        in_entry: bool = False
+        in_quote: bool = False
+        add_quote_list: list[int] = []
+
+        for i, c in enumerate(json_string):
+            if c == '"':
+                in_quote = not in_quote
+            elif not in_quote:
+                if re.match(r"[\{\}\[\],:]", c):
+                    if in_entry:
+                        add_quote_list.append(entry_start)
+                        add_quote_list.append(entry_end)
+                        in_entry = False
+                elif not re.match(r"\s", c):
+                    if not in_entry:
+                        entry_start = i
+                        in_entry = True
+                    entry_end = i + 1
+
+        add_quote_list = [0] + add_quote_list + [len(json_string)]
+        json_string = '"'.join([json_string[add_quote_list[i]:add_quote_list[i+1]] for i in range(len(add_quote_list) - 1)])
     
     conf: dict = json.loads(json_string)
     if "version" in conf and conf["version"] > DataMigrator.__version__:

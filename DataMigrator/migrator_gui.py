@@ -452,7 +452,10 @@ class FileEntryFrame(ttk.Frame):
         if config_path:
 
             try:
-                self.master.mconfig = mt.parse_migration_config(config_path, "UTF-8")
+                if path.isfile(config_path):
+                    self.master.mconfig = mt.parse_migration_config(config_path, "UTF-8")
+                elif path.isfile(rel_path := path.join("./Config", config_path)):
+                    self.master.mconfig = mt.parse_migration_config(rel_path, "UTF-8")
             except Exception as e:
                 messagebox.showerror(f"{type(e).__name__} Occored when Loading Config", e)
                 return

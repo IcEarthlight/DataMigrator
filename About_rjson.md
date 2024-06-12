@@ -7,21 +7,7 @@ rjson is a variation of relaxed json, designed for quick and easy writing, follo
 - Commas cannot be omitted between objects paires and array items. (which is different from the mainstream rjson)
 - Space must be added after commas and colons before unquoted keys or values.
 
-Basically, the script would first convert rjson into standard json format using the following regular expressions, and then parse them with python builtin json parser.
-
-``` Python
-# add quotes to keys
-json_string = re.sub(r"([{,]\s*)([^\'\",:\[\]{}\n\r]+?)(:)",
-                     r'\1"\2"\3', json_string)
-# add quotes to values
-json_string = re.sub(r"([{\[:,][\s\n]*)([^\'\",:\[\]{}\n\r]+?)([\s\n]*[,])",
-                     r'\1"\2"\3', json_string)
-# add quotes to values with overlapping intervals
-json_string = re.sub(r"([:,][\s\n]+)([^\'\",:\[\]{}\n\r]+?)([\s\n]*[,\]}])",
-                     r'\1"\2"\3', json_string)
-```
-
-There's no need for you to fully understand the regular expressions, just to know the basic json standard and the 4 rules above can you get started with rjson for DataMigration.
+Basically, the script would first convert rjson into standard json format, and then parse them with python builtin json parser.
 
 ## How to load rjson
 
@@ -281,19 +267,15 @@ I can write Pjshon like:
 script: [
     last = None,
     ind = 0,
-    {
-        for i in range(l): [
-            {
-                "if dpd[0][1] == last":
-                	ind += 1,
-                else: [
-                    "last = dpd[0][i]",
-                    ind = 1
-                ]
-            },
-            tgt[i] = ind
-        ]
-    }
+    { for i in range(l): [
+        { "if dpd[0][1] == last":
+            ind += 1,
+        else: [
+            "last = dpd[0][i]",
+            ind = 1
+        ]},
+        tgt[i] = ind
+    ]}
 ]
 ```
 
