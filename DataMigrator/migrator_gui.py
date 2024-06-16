@@ -8,14 +8,15 @@ import itertools
 
 from os import path, PathLike
 from abc import ABC, abstractmethod
-from tkinter.constants import LEFT
 from typing import Any, Iterable, Literal, Callable, override
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
+from tkinter.constants import LEFT
 
 import DataMigrator
 import DataMigrator.migration_toolkit as mt
+
 
 def choose_file(entry: ttk.Entry | ttk.Combobox,
                 filetypes: Iterable[tuple[str, str | list[str] | tuple[str, ...]]],

@@ -80,14 +80,14 @@ class Column:
         self.data.append(newData)
 
     def get_data(self, index: int) -> object | None:
-        if index < len(self.data):
+        if self.data and -len(self.data) <= index < len(self.data):
             return self.data[index]
         else:
             return None
         
     def del_row(self, index: int) -> None:
         """ Delete a row of given index. """
-        if index < len(self.data):
+        if self.data and -len(self.data) <= index < len(self.data):
             del self.data[index]
     
     def swap_row(self, i0: int, i1: int) -> None:
@@ -195,7 +195,7 @@ class IndexColumn(Column):
 
     @override
     def get_data(self, index: int) -> int:
-        if index < len(self.data):
+        if self.data and -len(self.data) <= index < len(self.data):
             return self.data[index]
         return self.start_from + index
     
@@ -395,8 +395,6 @@ class Table:
         if loose:
             for c in self.columns:
                 if re.sub(r"\s", '', c.title) == re.sub(r"\s", '', column_title):
-                    return c
-                elif re.match(column_title, c.title):
                     return c
             raise KeyError(column_title)
         else:

@@ -7,48 +7,6 @@ from DataMigrator.suspended_list import SuspendedList
 from DataMigrator import pjshon
 from DataMigrator import mapping_functions
 
-def substitute_args(s: str, args: list):
-    """ Substitute argment values for the keyword (such as "_arg03") in config. """
-    if re.match(r"_arg[0-9]+", s):
-        index: int = int(s[4:])
-        return args[index]
-    return s
-
-def dereference_column(src_db: Database,
-                       ex_src_db: list[Database],
-                       sub_db: Database,
-                       tgt_db: Database,
-                       table_ref: str,
-                       column_ref: str
-    ) -> Column:
-    """ Parse the fields in the config and return the column object that is referred. """
-    src_col: Column
-    if re.match(r"_This\..+", table_ref):
-        src_col = tgt_db.get_table(
-            table_ref[6:]
-        ).get_column(
-            column_ref
-        )
-    elif match := re.match(r"(_Add)([0-9]+)\.(.+)", table_ref):
-        add_index: int = int(match.group(2))
-        table_name: str = match.group(3)
-
-        src_col = ex_src_db[add_index].get_table(
-            table_name
-        ).get_column(
-            column_ref
-        )
-    elif match := re.match(r"(_Sub)([0-9]+)", table_ref):
-        sub_index: int = int(match.group(2))
-        src_col = sub_db.tables[sub_index].get_column(column_ref, True)
-    else:
-        src_col = src_db.get_table(
-            table_ref
-        ).get_column(
-            column_ref
-        )
-    return src_col
-
 
 def parse_migration_config(fp: PathLike, encoding: str | None = None) -> dict:
     """ Convert the .rjson format to the standard format using a set of regular expressions
@@ -92,6 +50,50 @@ def parse_migration_config(fp: PathLike, encoding: str | None = None) -> dict:
                         f"the package up-to-date.")
         
     return conf
+
+
+def substitute_args(s: str, args: list):
+    """ Substitute argment values for the keyword (such as "_arg03") in config. """
+    if re.match(r"_arg[0-9]+", s):
+        index: int = int(s[4:])
+        return args[index]
+    return s
+
+
+def dereference_column(src_db: Database,
+                       ex_src_db: list[Database],
+                       sub_db: Database,
+                       tgt_db: Database,
+                       table_ref: str,
+                       column_ref: str
+    ) -> Column:
+    """ Parse the fields in the config and return the column object that is referred. """
+    src_col: Column
+    if re.match(r"_This\..+", table_ref):
+        src_col = tgt_db.get_table(
+            table_ref[6:]
+        ).get_column(
+            column_ref
+        )
+    elif match := re.match(r"(_Add)([0-9]+)\.(.+)", table_ref):
+        add_index: int = int(match.group(2))
+        table_name: str = match.group(3)
+
+        src_col = ex_src_db[add_index].get_table(
+            table_name
+        ).get_column(
+            column_ref
+        )
+    elif match := re.match(r"(_Sub)([0-9]+)", table_ref):
+        sub_index: int = int(match.group(2))
+        src_col = sub_db.tables[sub_index].get_column(column_ref, True)
+    else:
+        src_col = src_db.get_table(
+            table_ref
+        ).get_column(
+            column_ref
+        )
+    return src_col
 
 
 def process_cconf(src_db: Database,
